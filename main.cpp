@@ -1,11 +1,24 @@
 //
 // Created by 姚文锋 on 2018/9/30.
 //
-#include "socket_interface.h"
+//#include "socket_interface.h"
 #include "debug_log.h"
 
+// 输入二进制
+void out_bin(char c){
+    unsigned char k = 0x80;
+    for (int i=0; i<8; i++, k >>= 1){
+        if (c & k){
+            printf("1");
+        }else{
+            printf("0");
+        }
+    }
+    printf(" ");
+}
+
 int main() {
-    SOCKET_INTERFACE->run();
+//    SOCKET_INTERFACE->run();
 
 /*    char a[32];
     sprintf(a, "./log/web_socket");
@@ -21,4 +34,19 @@ int main() {
     cout << a << endl;*/
 
 //    DEBUG_LOG("%s", "姚文锋");
+
+// 字符数组，字符数组和字符串最明显的区别就是字符串会被默认的加上结束符'\0'
+//    char a[4] = "abc";
+//    char b[4] = {'a', 'b', 'c', 'd'};
+//    cout << a << endl;
+
+    uint8_t op_code;
+    const char *msg = "abc";
+    int pos = 0;
+//    op_code = (unsigned char)msg[pos];
+    op_code = (unsigned char)(msg[pos] & 0x0f);
+    out_bin(msg[pos]);
+    out_bin(op_code);
+    cout << msg[pos] << endl;
+    cout << op_code << endl;
 }

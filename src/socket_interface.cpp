@@ -33,11 +33,30 @@ int socketInterface::init(){
         return -1;
     }
 //    epoll_fd = epoll_create(MAX_EVENTS_SIZE);
-
+//
 //    ctl_event(listen_fd, true);
     DEBUG_LOG("服务器启动成功!");
     return 0;
 }
+
+//void socketInterface::ctl_event(int fd, bool flag){
+//    struct epoll_event ev;
+//    ev.data.fd = fd;
+//    ev.events = flag ? EPOLLIN : 0;
+//    epoll_ctl(epollfd_, flag ? EPOLL_CTL_ADD : EPOLL_CTL_DEL, fd, &ev);
+//    if(flag){
+//        set_noblock(fd);
+//        websocket_handler_map_[fd] = new Websocket_Handler(fd);
+//        if(fd != listenfd_)
+//            DEBUG_LOG("fd: %d 加入epoll循环", fd);
+//    }
+//    else{
+//        close(fd);
+//        delete websocket_handler_map_[fd];
+//        websocket_handler_map_.erase(fd);
+//        DEBUG_LOG("fd: %d 退出epoll循环", fd);
+//    }
+//}
 
 void socketInterface::run(){
     init();

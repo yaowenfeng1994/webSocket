@@ -2,8 +2,8 @@
 // Created by 姚文锋 on 2018/10/1.
 //
 
-#ifndef SOCKET_H
-#define SOCKET_H
+#ifndef _SOCKET_INTERFACE_H
+#define _SOCKET_INTERFACE_H
 #include <iostream>
 #include <arpa/inet.h>
 #include <string.h>
@@ -16,17 +16,24 @@
 
 using namespace std;
 
+//typedef std::map<int, Websocket_Handler *> WEB_SOCKET_HANDLER_MAP;
+
 class socketInterface {
+
+private:
+    int epoll_fd;
+    int listen_fd;
+    static socketInterface* m_socket_interface;
+//    WEB_SOCKET_HANDLER_MAP web_socket_handler_map;
 
 private:
     // 构造函数
 //    socketInterface();
     // 析构函数
 //    ~socketInterface();
-    int epoll_fd;
-    int listen_fd;
-    static socketInterface* m_socket_interface;
+
     int init();
+    void ctl_event(int fd, bool flag);
 
 public:
     void run();
