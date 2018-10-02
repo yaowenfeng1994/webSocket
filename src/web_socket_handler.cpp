@@ -38,7 +38,7 @@ void webSocketHandler::parse_str(char *request){
     strcat(request, "HTTP/1.1 101 Switching Protocols\r\n");
     strcat(request, "Connection: upgrade\r\n");
     strcat(request, "Sec-WebSocket-Accept: ");
-    std::string server_key = header_map["Sec-WebSocket-Key"];
+    string server_key = header_map["Sec-WebSocket-Key"];
     server_key += MAGIC_KEY;
 
     SHA1 sha;
@@ -50,17 +50,17 @@ void webSocketHandler::parse_str(char *request){
     for (int i = 0; i < 5; i++) {
         message_digest[i] = htonl(message_digest[i]);
     }
-    server_key = base64_encode(reinterpret_cast<const unsigned char*>(message_digest),20);
+    server_key = base64_encode(reinterpret_cast<const unsigned char*>(message_digest), 20);
     server_key += "\r\n";
     strcat(request, server_key.c_str());
     strcat(request, "Upgrade: websocket\r\n\r\n");
 }
 
 int webSocketHandler::fetch_http_info(){
-    std::istringstream s(buff);
-    std::string request;
+    istringstream s(buff);
+    string request;
 
-    std::getline(s, request);
+    getline(s, request);
     if (request[request.size()-1] == '\r') {
         request.erase(request.end()-1);
     } else {
@@ -89,5 +89,5 @@ int webSocketHandler::fetch_http_info(){
 }
 
 int webSocketHandler::send_data(char *buff){
-    return write(fd_, buff, strlen(buff));
+    return write(fd, buff, strlen(buff));
 }

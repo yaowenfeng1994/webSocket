@@ -4,7 +4,12 @@
 
 #ifndef _WEB_SOCKET_HANDLER_H
 #define _WEB_SOCKET_HANDLER_H
+
 #include <map>
+#include <sstream>
+#include <unistd.h>
+#include "sha1.h"
+#include "base64.h"
 #include "web_socket_request.h"
 
 #define MAGIC_KEY "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

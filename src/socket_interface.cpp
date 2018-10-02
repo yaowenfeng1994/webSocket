@@ -13,6 +13,18 @@ socketInterface* socketInterface::get_share_socket_interface(){
     return m_socket_interface;
 }
 
+socketInterface::socketInterface():
+        epoll_fd(0),
+        listen_fd(0),
+        web_socket_handler_map()
+{
+    if(0 != init())
+        exit(1);
+}
+
+socketInterface::~socketInterface(){
+}
+
 int socketInterface::init(){
     listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if(listen_fd == -1){
@@ -32,32 +44,72 @@ int socketInterface::init(){
         DEBUG_LOG("监听失败!");
         return -1;
     }
-//    epoll_fd = epoll_create(MAX_EVENTS_SIZE);
-//
-//    ctl_event(listen_fd, true);
+    epoll_fd = epoll_create(MAX_EVENTS_SIZE);
+
+    ctl_event(listen_fd, true);
     DEBUG_LOG("服务器启动成功!");
     return 0;
 }
 
-//void socketInterface::ctl_event(int fd, bool flag){
-//    struct epoll_event ev;
-//    ev.data.fd = fd;
-//    ev.events = flag ? EPOLLIN : 0;
-//    epoll_ctl(epollfd_, flag ? EPOLL_CTL_ADD : EPOLL_CTL_DEL, fd, &ev);
-//    if(flag){
-//        set_noblock(fd);
-//        websocket_handler_map_[fd] = new Websocket_Handler(fd);
-//        if(fd != listenfd_)
-//            DEBUG_LOG("fd: %d 加入epoll循环", fd);
-//    }
-//    else{
-//        close(fd);
-//        delete websocket_handler_map_[fd];
-//        websocket_handler_map_.erase(fd);
-//        DEBUG_LOG("fd: %d 退出epoll循环", fd);
-//    }
-//}
+int socketInterface::epoll_loop(){
+    struct sockaddr_in client_address;
+    socklen_t clilen;
+    int nfds = 0;
+    int fd = 0;
+    int bufflen = 0;
+    struct epoll_event events[MAX_EVENTS_SIZE];
+    while(true){
+        nfds = epoll_wait(epoll_fd, events, MAX_EVENTS_SIZE, TIME_WAIT);
+        for(int i = 0; i < nfds; i++){
+            if(events[i].data.fd == listen_fd){
+                fd = accept(listen_fd, (struct sockaddr *)&client_address, &clilen);
+                ctl_event(fd, true);
+            }
+            else if(events[i].events & EPOLLIN){
+                if((fd = events[i].data.fd) < 0)
+                    continue;
+                webSocketHandler *handler = web_socket_handler_map[fd];
+                if(handler == NULL)
+                    continue;
+                if((bufflen = read(fd, handler->get_buff(), BUFF_LEN)) <= 0){
+                    ctl_event(fd, false);
+                }
+                else{
+                    handler->process();
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+int socketInterface::set_noblock(int fd){
+    int flags;
+    if ((flags = fcntl(fd, F_GETFL, 0)) == -1)
+        flags = 0;
+    return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+
+void socketInterface::ctl_event(int fd, bool flag){
+    struct epoll_event ev;
+    ev.data.fd = fd;
+    ev.events = flag ? EPOLLIN : 0;
+    epoll_ctl(epoll_fd, flag ? EPOLL_CTL_ADD : EPOLL_CTL_DEL, fd, &ev);
+    if(flag){
+        set_noblock(fd);
+        web_socket_handler_map[fd] = new webSocketHandler(fd);
+        if(fd != listen_fd)
+            DEBUG_LOG("fd: %d 加入epoll循环", fd);
+    }
+    else{
+        close(fd);
+        delete web_socket_handler_map[fd];
+        web_socket_handler_map.erase(fd);
+        DEBUG_LOG("fd: %d 退出epoll循环", fd);
+    }
+}
 
 void socketInterface::run(){
-    init();
+    epoll_loop();
 }
