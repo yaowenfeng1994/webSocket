@@ -22,10 +22,10 @@
             alert('connect success!');
         }
         function sError(e){
-            alert("error " + e);
+            alert("error " + e.data);
         }
         function sMessage(msg){
-            alert('server says:' + msg);
+            alert('server says:' + msg.data);
         }
         function sClose(e){
             alert("connect closed:" + e.code);

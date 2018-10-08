@@ -51,12 +51,58 @@ int socketInterface::init(){
     return 0;
 }
 
+void respondClient(int sockClient, unsigned char charb[],size_t length, bool finalFragment){
+    char buf[1024] = "";
+    int first = 0x00;
+    int tmp = 0;
+    if (finalFragment) {
+        first = first + 0x80;
+        first = first + 0x1;
+    }
+    buf[0] = first;
+    tmp = 1;
+    cout <<"数组长度:"<< length << endl;
+    unsigned int nuNum = (unsigned)length;
+    if (length < 126) {
+        buf[1] = length;
+        tmp = 2;
+    }else if (length < 65536) {
+        buf[1] = 126;
+        buf[2] = nuNum >> 8;
+        buf[3] = length & 0xFF;
+        tmp = 4;
+    }else {
+        //数据长度超过65536
+        buf[1] = 127;
+        buf[2] = 0;
+        buf[3] = 0;
+        buf[4] = 0;
+        buf[5] = 0;
+        buf[6] = nuNum >> 24;
+        buf[7] = nuNum >> 16;
+        buf[8] = nuNum >> 8;
+        buf[9] = nuNum & 0xFF;
+        tmp = 10;
+    }
+    for (int i = 0; i < length;i++){
+        buf[tmp+i]= charb[i];
+        printf("要发送的数据字节：%d\n", charb[i]);
+    }
+    char charbuf[1024] = "";
+//    buf[length+tmp] = '\0';
+    memcpy(charbuf, buf, length + tmp);
+    cout << buf << endl;
+    cout << charbuf << endl;
+    send(sockClient, charbuf, 1024, 0);
+}
+
 int socketInterface::epoll_loop(){
     struct sockaddr_in client_address;
     socklen_t clilen;
     int nfds = 0;
     int fd = 0;
     int bufflen = 0;
+    int flag = 0;
     struct epoll_event events[MAX_EVENTS_SIZE];
     while(true){
         nfds = epoll_wait(epoll_fd, events, MAX_EVENTS_SIZE, TIME_WAIT);
@@ -71,10 +117,17 @@ int socketInterface::epoll_loop(){
                 webSocketHandler *handler = web_socket_handler_map[fd];
                 if(handler == NULL)
                     continue;
+
                 if((bufflen = read(fd, handler->get_buff(), BUFF_LEN)) <= 0){
                     ctl_event(fd, false);
                 }
                 else{
+                    if (handler->status == WEB_SOCKET_HAND_SHARKED){
+                        unsigned char test[1024] = "";
+                        char a[4096] = {'a', 'b', 'c'};
+                        memcpy(test, a, strlen(a));
+                        respondClient(events[i].data.fd, test, strlen(a), true);
+                    }
                     handler->process();
                 }
             }
@@ -96,18 +149,19 @@ void socketInterface::ctl_event(int fd, bool flag){
     ev.data.fd = fd;
     ev.events = flag ? EPOLLIN : 0;
     epoll_ctl(epoll_fd, flag ? EPOLL_CTL_ADD : EPOLL_CTL_DEL, fd, &ev);
-    if(flag){
+
+    if (flag) {
         set_noblock(fd);
         web_socket_handler_map[fd] = new webSocketHandler(fd);
-        if(fd != listen_fd)
+        if (fd != listen_fd)
             DEBUG_LOG("fd: %d 加入epoll循环", fd);
-    }
-    else{
+    } else {
         close(fd);
         delete web_socket_handler_map[fd];
         web_socket_handler_map.erase(fd);
         DEBUG_LOG("fd: %d 退出epoll循环", fd);
     }
+
 }
 
 void socketInterface::run(){

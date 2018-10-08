@@ -12,7 +12,7 @@
 #include "web_socket_handler.h"
 
 #define PORT 13389
-#define TIME_WAIT 100
+#define TIME_WAIT 30
 #define HOST "172.16.213.82"
 #define MAX_EVENTS_SIZE 20
 #define BUFF_LEN 2048

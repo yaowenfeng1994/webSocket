@@ -31,6 +31,9 @@ public:
     int process();
     inline char *get_buff();
 
+    WEB_SOCKET_STATUS status;
+//    int send_data(char *buff);
+
 private:
     int hand_shark();
     void parse_str(char *request);
@@ -39,7 +42,7 @@ private:
 
 private:
     char buff[2048];
-    WEB_SOCKET_STATUS status;
+//    WEB_SOCKET_STATUS status;
     HEADER_MAP header_map;
     int fd;
     webSocketRequest *request;
