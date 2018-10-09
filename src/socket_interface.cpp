@@ -51,8 +51,9 @@ int socketInterface::init(){
     return 0;
 }
 
-void respondClient(int sockClient, unsigned char charb[],size_t length, bool finalFragment){
+void socketInterface::respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment){
     char buf[1024] = "";
+    char char_buf[1024] = "";
     int first = 0x00;
     int tmp = 0;
     if (finalFragment) {
@@ -64,7 +65,8 @@ void respondClient(int sockClient, unsigned char charb[],size_t length, bool fin
     cout <<"数组长度:"<< length << endl;
     unsigned int nuNum = (unsigned)length;
     if (length < 126) {
-        buf[1] = length;
+        // buf[1] = length;
+        buf[1] = ' '; // server下发数据给client时一般不进行掩码处理
         tmp = 2;
     }else if (length < 65536) {
         buf[1] = 126;
@@ -85,30 +87,24 @@ void respondClient(int sockClient, unsigned char charb[],size_t length, bool fin
         tmp = 10;
     }
     for (int i = 0; i < length;i++){
-        buf[tmp+i]= charb[i];
-        printf("要发送的数据字节：%d\n", charb[i]);
+        buf[tmp+i]= receive_buff[i];
     }
-    char charbuf[1024] = "";
-//    buf[length+tmp] = '\0';
-    memcpy(charbuf, buf, length + tmp);
-    cout << buf << endl;
-    cout << charbuf << endl;
-    send(sockClient, charbuf, 1024, 0);
+
+    memcpy(char_buf, buf, length + tmp);
+    send(sockClient, char_buf, 1024, 0);
 }
 
 int socketInterface::epoll_loop(){
     struct sockaddr_in client_address;
-    socklen_t clilen;
-    int nfds = 0;
+    socklen_t client;
+    int active_fds = 0;
     int fd = 0;
-    int bufflen = 0;
-    int flag = 0;
     struct epoll_event events[MAX_EVENTS_SIZE];
     while(true){
-        nfds = epoll_wait(epoll_fd, events, MAX_EVENTS_SIZE, TIME_WAIT);
-        for(int i = 0; i < nfds; i++){
+        active_fds = epoll_wait(epoll_fd, events, MAX_EVENTS_SIZE, TIME_WAIT);
+        for(int i = 0; i < active_fds; i++){
             if(events[i].data.fd == listen_fd){
-                fd = accept(listen_fd, (struct sockaddr *)&client_address, &clilen);
+                fd = accept(listen_fd, (struct sockaddr *)&client_address, &client);
                 ctl_event(fd, true);
             }
             else if(events[i].events & EPOLLIN){
@@ -118,17 +114,17 @@ int socketInterface::epoll_loop(){
                 if(handler == NULL)
                     continue;
 
-                if((bufflen = read(fd, handler->get_buff(), BUFF_LEN)) <= 0){
+                if((read(fd, handler->get_buff(), BUFF_LEN)) <= 0){
                     ctl_event(fd, false);
                 }
                 else{
-                    if (handler->status == WEB_SOCKET_HAND_SHARKED){
-                        unsigned char test[1024] = "";
-                        char a[4096] = {'a', 'b', 'c'};
-                        memcpy(test, a, strlen(a));
-                        respondClient(events[i].data.fd, test, strlen(a), true);
-                    }
                     handler->process();
+                    if (handler->status == WEB_SOCKET_HAND_SHARKED && strlen(handler->receive_buff)>0){
+                        unsigned char test[1024] = "";
+                        printf("handler->receive_buff：%s\n", handler->receive_buff);
+                        memcpy(test, handler->receive_buff, strlen(handler->receive_buff));
+                        respondClient(events[i].data.fd, test, strlen(handler->receive_buff), true);
+                    }
                 }
             }
         }

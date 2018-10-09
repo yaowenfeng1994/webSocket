@@ -35,7 +35,7 @@ void webSocketRequest::print(){
               "PAYLOADLEN: %d\n"
               "PAYLOAD: %s",
               fin, op_code, mask, payload_length, payload);
-    reset();
+//    reset();
 }
 
 void webSocketRequest::reset(){

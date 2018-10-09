@@ -12,7 +12,7 @@
 #include "web_socket_handler.h"
 
 #define PORT 13389
-#define TIME_WAIT 30
+#define TIME_WAIT 15
 #define HOST "172.16.213.82"
 #define MAX_EVENTS_SIZE 20
 #define BUFF_LEN 2048
@@ -40,6 +40,7 @@ private:
     int epoll_loop();
     int set_noblock(int fd);
     void ctl_event(int fd, bool flag);
+    void respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment);
 
 public:
     void run();

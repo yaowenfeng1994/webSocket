@@ -32,7 +32,7 @@ public:
     inline char *get_buff();
 
     WEB_SOCKET_STATUS status;
-//    int send_data(char *buff);
+    char receive_buff[2048];
 
 private:
     int hand_shark();
