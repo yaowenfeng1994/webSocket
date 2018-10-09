@@ -12,7 +12,7 @@
 #include "web_socket_handler.h"
 
 #define PORT 13389
-#define TIME_WAIT 15
+#define TIME_WAIT 120
 #define HOST "172.16.213.82"
 #define MAX_EVENTS_SIZE 20
 #define BUFF_LEN 2048
@@ -21,6 +21,13 @@
 using namespace std;
 
 typedef map<int, webSocketHandler *> WEB_SOCKET_HANDLER_MAP;
+
+struct clientSocketFd {
+    int     socket_fd;
+    int     user_id;
+    string  user_name;
+    char    send_buff[2048];
+};
 
 class socketInterface {
 

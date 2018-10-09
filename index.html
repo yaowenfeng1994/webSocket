@@ -19,31 +19,42 @@
             socket.onclose= sClose;
         }
         function sOpen(){
-            alert('connect success!');
+            alert("连接成功");
         }
         function sError(e){
-            alert("error " + e.data);
+            alert("error: " + e.data);
         }
         function sMessage(msg){
-            alert('server says:' + msg.data);
+            alert('服务器返回数据:' + msg.data);
         }
         function sClose(e){
-            alert("connect closed:" + e.code);
+            alert("连接关闭:" + e.code);
         }
         function Send(){
-            socket.send(document.getElementById("msg").value);
+            // socket.send(document.getElementById("msg").value);
+            var send_to = document.getElementById("send_to").value;
+            var msg = document.getElementById("msg").value;
+            var result = '{"user_id":"'+send_to+'","msg":"'+msg+'"}';
+            alert("发送数据:" + result);
+            socket.send(result);
         }
         function Close(){
+            alert("断开连接");
             socket.close();
         }
     </script>
 </head>
 
 <body>
-<input id="msg" type="text">
-<button id="connect" onclick="Connect();">Connect</button>
-<button id="send" onclick="Send();">Send</button>
-<button id="close" onclick="Close();">Close</button>
+输入自己的ID<br>
+<input id="user_id" type="text"><br>
+<button id="connect" onclick="Connect();">Connect</button><br>
+输入你要说的话<br>
+<input id="msg" type="text"><br>
+输入对方ID<br>
+<input id="send_to" type="text"><br>
+<button id="send" onclick="Send();">Send</button><br>
+<button id="close" onclick="Close();">Close</button><br>
 
 </body>
 

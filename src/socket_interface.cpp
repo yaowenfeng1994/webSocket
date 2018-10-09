@@ -121,9 +121,11 @@ int socketInterface::epoll_loop(){
                     handler->process();
                     if (handler->status == WEB_SOCKET_HAND_SHARKED && strlen(handler->receive_buff)>0){
                         unsigned char test[1024] = "";
+                        printf("strlen(handler->receive_buff)：%d\n", strlen(handler->receive_buff));
                         printf("handler->receive_buff：%s\n", handler->receive_buff);
                         memcpy(test, handler->receive_buff, strlen(handler->receive_buff));
                         respondClient(events[i].data.fd, test, strlen(handler->receive_buff), true);
+                        memset(handler->receive_buff, 0, sizeof(handler->receive_buff));
                     }
                 }
             }
