@@ -17,7 +17,9 @@ public:
     void print();
     void reset();
 
-    char payload[2048];
+    char* get_msg();
+    uint64_t get_msg_length();
+    uint8_t get_msg_op_code();
 
 private:
     int fetch_fin(char *msg, int &pos);
@@ -33,7 +35,7 @@ private:
     uint8_t mask;
     uint8_t masking_key[4];
     uint64_t payload_length;
-//    char payload[2048];
+    char payload[2048];
 };
 
 #endif //_WEB_SOCKET_REQUEST_H

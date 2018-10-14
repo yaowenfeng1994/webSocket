@@ -9,6 +9,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include <list>
 #include "web_socket_handler.h"
 
 #define PORT 13389
@@ -24,8 +25,8 @@ typedef map<int, webSocketHandler *> WEB_SOCKET_HANDLER_MAP;
 
 struct clientSocketFd {
     int     socket_fd;
-    int     user_id;
-    string  user_name;
+    char*   user_id;
+    char*   user_name;
     char    send_buff[2048];
 };
 
@@ -37,6 +38,8 @@ private:
     static socketInterface* m_socket_interface;
     WEB_SOCKET_HANDLER_MAP web_socket_handler_map;
 
+    list<clientSocketFd> connection_fds;
+
 private:
     // 构造函数
     socketInterface();
@@ -47,7 +50,7 @@ private:
     int epoll_loop();
     int set_noblock(int fd);
     void ctl_event(int fd, bool flag);
-    void respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment);
+//    void respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment);
 
 public:
     void run();

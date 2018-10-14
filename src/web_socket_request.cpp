@@ -104,3 +104,15 @@ int webSocketRequest::fetch_payload(char *msg, int &pos){
     pos += payload_length;
     return 0;
 }
+
+char* webSocketRequest::get_msg(){
+    return payload;
+}
+
+uint64_t webSocketRequest::get_msg_length(){
+    return payload_length;
+}
+
+uint8_t webSocketRequest::get_msg_op_code(){
+    return op_code;
+}

@@ -8,27 +8,48 @@ webSocketHandler::webSocketHandler(int fd):
         status(WEB_SOCKET_UN_CONNECT),
         header_map(),
         fd(fd),
-        request(new webSocketRequest)
+        request(new webSocketRequest),
+        first(true)
 {
 }
 
 webSocketHandler::~webSocketHandler(){
 }
 
-int webSocketHandler::process(){
+ssize_t webSocketHandler::process(){
     if(status == WEB_SOCKET_UN_CONNECT){
         return hand_shark();
     }
     request->fetch_web_socket_info(buff);
     request->print();
 
-    memcpy(receive_buff, request->payload, strlen(request->payload));
+    unsigned char* out;
+    size_t         out_len;
+    char* request_msg = request->get_msg();
+    size_t request_msg_len=request->get_msg_length();
+    uint8_t msg_op_code = request->get_msg_op_code();
+
+    if (!first) {
+        if (msg_op_code == 1) {
+            //组包
+            respond->pack_data((const unsigned char*)request_msg,request_msg_len , WEB_SOCKET_FIN_MSG_END ,
+                               WEB_SOCKET_TEXT_DATA , WEB_SOCKET_NEED_NOT_MASK , &out, &out_len);
+
+            send_data((char*)out);           //回显
+//        send_broadcast_data((char*)out); //广播
+            free(out);
+        } else if (msg_op_code == 0) {
+            request->print();
+        }
+    } else {
+        memcpy(buff, request->get_msg(), strlen(request->get_msg()));
+    }
     request->reset();
-    memset(buff, 0, sizeof(buff));
+//    memset(buff, 0, sizeof(buff));
     return 0;
 }
 
-int webSocketHandler::hand_shark(){
+ssize_t webSocketHandler::hand_shark(){
     char request[1024] = {};
     status = WEB_SOCKET_HAND_SHARKED;
     fetch_http_info();
@@ -70,8 +91,8 @@ int webSocketHandler::fetch_http_info(){
         return -1;
     }
 
-    std::string header;
-    std::string::size_type end;
+    string header;
+    string::size_type end;
 
     while (std::getline(s, header) && header != "\r") {
         if (header[header.size()-1] != '\r') {
@@ -91,6 +112,18 @@ int webSocketHandler::fetch_http_info(){
     return 0;
 }
 
-int webSocketHandler::send_data(char *buff){
+ssize_t webSocketHandler::send_data(char *buff){
     return write(fd, buff, strlen(buff));
+}
+
+bool webSocketHandler::get_first(){
+    return first;
+}
+
+void webSocketHandler::set_first(bool result){
+    first = result;
+}
+
+void webSocketHandler::resetBuff(){
+    memset(buff, 0, sizeof(buff));
 }

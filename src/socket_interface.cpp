@@ -51,48 +51,48 @@ int socketInterface::init(){
     return 0;
 }
 
-void socketInterface::respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment){
-    char buf[1024] = "";
-    char char_buf[1024] = "";
-    int first = 0x00;
-    int tmp = 0;
-    if (finalFragment) {
-        first = first + 0x80;
-        first = first + 0x1;
-    }
-    buf[0] = first;
-    tmp = 1;
-    cout <<"数组长度:"<< length << endl;
-    unsigned int nuNum = (unsigned)length;
-    if (length < 126) {
-        // buf[1] = length;
-        buf[1] = ' '; // server下发数据给client时一般不进行掩码处理
-        tmp = 2;
-    }else if (length < 65536) {
-        buf[1] = 126;
-        buf[2] = nuNum >> 8;
-        buf[3] = length & 0xFF;
-        tmp = 4;
-    }else {
-        //数据长度超过65536
-        buf[1] = 127;
-        buf[2] = 0;
-        buf[3] = 0;
-        buf[4] = 0;
-        buf[5] = 0;
-        buf[6] = nuNum >> 24;
-        buf[7] = nuNum >> 16;
-        buf[8] = nuNum >> 8;
-        buf[9] = nuNum & 0xFF;
-        tmp = 10;
-    }
-    for (int i = 0; i < length;i++){
-        buf[tmp+i]= receive_buff[i];
-    }
-
-    memcpy(char_buf, buf, length + tmp);
-    send(sockClient, char_buf, 1024, 0);
-}
+// 该方法已废弃
+//void socketInterface::respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment){
+//    char buf[1024] = "";
+//    char char_buf[1024] = "";
+//    int first = 0x00;
+//    int tmp = 0;
+//    if (finalFragment) {
+//        first = first + 0x80;
+//        first = first + 0x1;
+//    }
+//    buf[0] = first;
+//    tmp = 1;
+//    cout <<"数组长度:"<< length << endl;
+//    int nuNum = (unsigned)length;
+//    if (length < 126) {
+//        // buf[1] = length;
+//        buf[1] = '0'; // server下发数据给client时一般不进行掩码处理
+//        tmp = 2;
+//    }else if (length < 65536) {
+//        buf[1] = 126;
+//        buf[2] = nuNum >> 8;
+//        buf[3] = length & 0xFF;
+//        tmp = 4;
+//    }else {
+//        //数据长度超过65536
+//        buf[1] = 127;
+//        buf[2] = 0;
+//        buf[3] = 0;
+//        buf[4] = 0;
+//        buf[5] = 0;
+//        buf[6] = nuNum >> 24;
+//        buf[7] = nuNum >> 16;
+//        buf[8] = nuNum >> 8;
+//        buf[9] = nuNum & 0xFF;
+//        tmp = 10;
+//    }
+//    for (int i = 0; i < length;i++){
+//        buf[tmp+i]= receive_buff[i];
+//    }
+//    memcpy(char_buf, buf, strlen(buf));
+//    send(sockClient, char_buf, 1024, 0);
+//}
 
 int socketInterface::epoll_loop(){
     struct sockaddr_in client_address;
@@ -101,6 +101,16 @@ int socketInterface::epoll_loop(){
     int fd = 0;
     struct epoll_event events[MAX_EVENTS_SIZE];
     while(true){
+        if (!connection_fds.empty())
+        {
+            cout << "当前连接池里有:(";
+            for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
+                cout << it->socket_fd << ",";
+            }
+            cout << ")" << endl;
+        }
+        sleep(1);
+
         active_fds = epoll_wait(epoll_fd, events, MAX_EVENTS_SIZE, TIME_WAIT);
         for(int i = 0; i < active_fds; i++){
             if(events[i].data.fd == listen_fd){
@@ -115,18 +125,26 @@ int socketInterface::epoll_loop(){
                     continue;
 
                 if((read(fd, handler->get_buff(), BUFF_LEN)) <= 0){
+                    cout << "准备退出" << endl;
                     ctl_event(fd, false);
-                }
-                else{
-                    handler->process();
-                    if (handler->status == WEB_SOCKET_HAND_SHARKED && strlen(handler->receive_buff)>0){
-                        unsigned char test[1024] = "";
-                        printf("strlen(handler->receive_buff)：%d\n", strlen(handler->receive_buff));
-                        printf("handler->receive_buff：%s\n", handler->receive_buff);
-                        memcpy(test, handler->receive_buff, strlen(handler->receive_buff));
-                        respondClient(events[i].data.fd, test, strlen(handler->receive_buff), true);
-                        memset(handler->receive_buff, 0, sizeof(handler->receive_buff));
+                    for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
+                        if (it->socket_fd == fd) {
+                            it = connection_fds.erase(it);
+                            break;
+                        }
                     }
+                } else if () {
+                    // 如果收到消息长度为0，就删除epoll事件
+                } else {
+                    handler->process();
+                    if (handler->get_first()){
+                        clientSocketFd fdObj;
+                        fdObj.socket_fd = fd;
+                        fdObj.user_id = handler->get_buff();
+                        connection_fds.push_front(fdObj);
+                        handler->set_first(false);
+                    }
+                    handler->resetBuff();
                 }
             }
         }
@@ -141,7 +159,6 @@ int socketInterface::set_noblock(int fd){
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-
 void socketInterface::ctl_event(int fd, bool flag){
     struct epoll_event ev;
     ev.data.fd = fd;
@@ -151,8 +168,9 @@ void socketInterface::ctl_event(int fd, bool flag){
     if (flag) {
         set_noblock(fd);
         web_socket_handler_map[fd] = new webSocketHandler(fd);
-        if (fd != listen_fd)
+        if (fd != listen_fd) {
             DEBUG_LOG("fd: %d 加入epoll循环", fd);
+        }
     } else {
         close(fd);
         delete web_socket_handler_map[fd];
