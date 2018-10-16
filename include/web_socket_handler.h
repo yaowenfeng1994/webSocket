@@ -56,11 +56,13 @@ public:
     webSocketHandler(int fd);
     ~webSocketHandler();
     ssize_t process();
-    inline char *get_buff();
+    char* get_buff();
 
     bool get_first();
     void set_first(bool result);
-    void resetBuff();
+    void reset();
+    inline uint8_t get_msg_op_code();
+    inline WEB_SOCKET_STATUS get_state();
 
 private:
     ssize_t hand_shark();
@@ -75,11 +77,16 @@ private:
     int fd;
     webSocketRequest *request;      //请求处理类
     webSocketRespond *respond;      //应答处理类
-    bool first;              //表示构造函数是否是第一次初始化
+    bool first;                     //表示构造函数是否是第一次初始化
+    uint8_t op_code;
 };
 
-inline char *webSocketHandler::get_buff(){
-    return buff;
+inline uint8_t webSocketHandler::get_msg_op_code(){
+    return op_code;
+}
+
+inline WEB_SOCKET_STATUS webSocketHandler::get_state(){
+    return status;
 }
 
 #endif //_WEB_SOCKET_HANDLER_H

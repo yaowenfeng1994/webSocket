@@ -30,22 +30,28 @@ ssize_t webSocketHandler::process(){
     uint8_t msg_op_code = request->get_msg_op_code();
 
     if (!first) {
+        printf("111request->get_msg(): %s\n", request->get_msg());
         if (msg_op_code == 1) {
             //组包
             respond->pack_data((const unsigned char*)request_msg,request_msg_len , WEB_SOCKET_FIN_MSG_END ,
                                WEB_SOCKET_TEXT_DATA , WEB_SOCKET_NEED_NOT_MASK , &out, &out_len);
 
-            send_data((char*)out);           //回显
-//        send_broadcast_data((char*)out); //广播
+            send_data((char*)out);          //回显
+//        send_broadcast_data((char*)out);  //广播
             free(out);
         } else if (msg_op_code == 0) {
             request->print();
         }
     } else {
+        memset(buff, 0, sizeof(buff));
+        printf("111buff: %s\n", buff);
+        printf("222request->get_msg(): %s\n", request->get_msg());
         memcpy(buff, request->get_msg(), strlen(request->get_msg()));
+        printf("222buff: %s\n", buff);
+//        op_code = request->get_msg_op_code();
+        set_first(false);
     }
     request->reset();
-//    memset(buff, 0, sizeof(buff));
     return 0;
 }
 
@@ -103,13 +109,17 @@ int webSocketHandler::fetch_http_info(){
 
         end = header.find(": ",0);
         if (end != std::string::npos) {
-            std::string key = header.substr(0,end);
-            std::string value = header.substr(end+2);
+            string key = header.substr(0,end);
+            string value = header.substr(end+2);
             header_map[key] = value;
         }
     }
 
     return 0;
+}
+
+char* webSocketHandler::get_buff(){
+    return buff;
 }
 
 ssize_t webSocketHandler::send_data(char *buff){
@@ -124,6 +134,7 @@ void webSocketHandler::set_first(bool result){
     first = result;
 }
 
-void webSocketHandler::resetBuff(){
+void webSocketHandler::reset(){
     memset(buff, 0, sizeof(buff));
+    op_code = 0;
 }

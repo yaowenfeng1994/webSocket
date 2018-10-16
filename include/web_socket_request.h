@@ -17,7 +17,7 @@ public:
     void print();
     void reset();
 
-    char* get_msg();
+    inline char* get_msg();
     uint64_t get_msg_length();
     uint8_t get_msg_op_code();
 
@@ -38,4 +38,7 @@ private:
     char payload[2048];
 };
 
+inline char* webSocketRequest::get_msg(){
+    return payload;
+}
 #endif //_WEB_SOCKET_REQUEST_H

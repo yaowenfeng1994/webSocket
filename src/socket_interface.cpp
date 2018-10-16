@@ -105,10 +105,11 @@ int socketInterface::epoll_loop(){
         {
             cout << "当前连接池里有:(";
             for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
-                cout << it->socket_fd << ",";
+                cout << it->user_id << ",";
             }
             cout << ")" << endl;
         }
+
         sleep(1);
 
         active_fds = epoll_wait(epoll_fd, events, MAX_EVENTS_SIZE, TIME_WAIT);
@@ -123,9 +124,8 @@ int socketInterface::epoll_loop(){
                 webSocketHandler *handler = web_socket_handler_map[fd];
                 if(handler == NULL)
                     continue;
-
                 if((read(fd, handler->get_buff(), BUFF_LEN)) <= 0){
-                    cout << "准备退出" << endl;
+                    printf("222strlen(handler->get_buff()): %s\n", strlen(handler->get_buff()));
                     ctl_event(fd, false);
                     for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
                         if (it->socket_fd == fd) {
@@ -133,18 +133,28 @@ int socketInterface::epoll_loop(){
                             break;
                         }
                     }
-                } else if () {
+                } else if (handler->get_msg_op_code()==8) {
                     // 如果收到消息长度为0，就删除epoll事件
+                    printf("222handler->get_msg_op_code(): %d\n", handler->get_msg_op_code());
+                    ctl_event(fd, false);
+                    for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
+                        if (it->socket_fd == fd) {
+                            it = connection_fds.erase(it);
+                            break;
+                        }
+                    }
                 } else {
                     handler->process();
-                    if (handler->get_first()){
+                    if (handler->get_first() && handler->get_state() == 1 && strlen(handler->get_buff())>0){
+                        printf("111strlen(handler->get_buff()): %s\n", strlen(handler->get_buff()));
                         clientSocketFd fdObj;
                         fdObj.socket_fd = fd;
-                        fdObj.user_id = handler->get_buff();
+                        memcpy(fdObj.user_id, handler->get_buff(), strlen(handler->get_buff()));
+                        printf("fdObj.user_id: %d\n", fdObj.user_id);
                         connection_fds.push_front(fdObj);
-                        handler->set_first(false);
+//                        handler->set_first(false);
                     }
-                    handler->resetBuff();
+//                    handler->reset();
                 }
             }
         }

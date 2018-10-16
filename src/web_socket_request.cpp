@@ -105,10 +105,6 @@ int webSocketRequest::fetch_payload(char *msg, int &pos){
     return 0;
 }
 
-char* webSocketRequest::get_msg(){
-    return payload;
-}
-
 uint64_t webSocketRequest::get_msg_length(){
     return payload_length;
 }

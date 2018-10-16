@@ -15,14 +15,13 @@
                 return;
             }
             socket.onopen = sOpen;
-
             socket.onerror = sError;
             socket.onmessage= sMessage;
             socket.onclose= sClose;
         }
         function sOpen(){
             alert("正在连接");
-            setTimeout("sendUserID()", 1000);
+            setTimeout(sendUserID(), 1000);
         }
         function sError(e){
             alert("error: " + e.data);
