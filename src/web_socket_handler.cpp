@@ -5,11 +5,15 @@
 
 webSocketHandler::webSocketHandler(int fd):
         buff(),
+        user_id(),
         status(WEB_SOCKET_UN_CONNECT),
         header_map(),
         fd(fd),
         request(new webSocketRequest),
-        first(true)
+        first(true),
+        request_msg_len(),
+        request_buff(),
+        op_code()
 {
 }
 
@@ -23,33 +27,27 @@ ssize_t webSocketHandler::process(){
     request->fetch_web_socket_info(buff);
     request->print();
 
-    unsigned char* out;
-    size_t         out_len;
-    char* request_msg = request->get_msg();
-    size_t request_msg_len=request->get_msg_length();
-    uint8_t msg_op_code = request->get_msg_op_code();
+//    unsigned char* out;
+//    size_t         out_len;
+//    char* request_msg = request->get_msg();
+//    size_t request_msg_len = request->get_msg_length();
+//    uint8_t msg_op_code = request->get_msg_op_code();
 
     if (!first) {
-        printf("111request->get_msg(): %s\n", request->get_msg());
-        if (msg_op_code == 1) {
-            //组包
-            respond->pack_data((const unsigned char*)request_msg,request_msg_len , WEB_SOCKET_FIN_MSG_END ,
-                               WEB_SOCKET_TEXT_DATA , WEB_SOCKET_NEED_NOT_MASK , &out, &out_len);
-
-            send_data((char*)out);          //回显
-//        send_broadcast_data((char*)out);  //广播
-            free(out);
-        } else if (msg_op_code == 0) {
-            request->print();
-        }
+        memcpy(request_buff, request->get_msg(), strlen(request->get_msg()));
+        request_msg_len = request->get_msg_length();
+        op_code = request->get_msg_op_code();
+//        if (msg_op_code == 1) {
+//            //组包
+//            respond->pack_data((const unsigned char*)request_msg,request_msg_len , WEB_SOCKET_FIN_MSG_END ,
+//                               WEB_SOCKET_TEXT_DATA , WEB_SOCKET_NEED_NOT_MASK , &out, &out_len);
+//            send_data(fd, (char*)out);          //回显
+//            free(out);
+//        } else if (msg_op_code == 0) {
+//            request->print();
+//        }
     } else {
-        memset(buff, 0, sizeof(buff));
-        printf("111buff: %s\n", buff);
-        printf("222request->get_msg(): %s\n", request->get_msg());
-        memcpy(buff, request->get_msg(), strlen(request->get_msg()));
-        printf("222buff: %s\n", buff);
-//        op_code = request->get_msg_op_code();
-        set_first(false);
+        memcpy(user_id, request->get_msg(), strlen(request->get_msg()));
     }
     request->reset();
     return 0;
@@ -61,7 +59,7 @@ ssize_t webSocketHandler::hand_shark(){
     fetch_http_info();
     parse_str(request);
     memset(buff, 0, sizeof(buff));
-    return send_data(request);
+    return send_data(fd, request);
 }
 
 void webSocketHandler::parse_str(char *request){
@@ -118,16 +116,8 @@ int webSocketHandler::fetch_http_info(){
     return 0;
 }
 
-char* webSocketHandler::get_buff(){
-    return buff;
-}
-
-ssize_t webSocketHandler::send_data(char *buff){
-    return write(fd, buff, strlen(buff));
-}
-
-bool webSocketHandler::get_first(){
-    return first;
+ssize_t webSocketHandler::send_data(int target_fd, char *buff){
+    return write(target_fd, buff, strlen(buff));
 }
 
 void webSocketHandler::set_first(bool result){
@@ -135,6 +125,8 @@ void webSocketHandler::set_first(bool result){
 }
 
 void webSocketHandler::reset(){
-    memset(buff, 0, sizeof(buff));
+    request_msg_len = 0;
     op_code = 0;
+    memset(buff, 0, sizeof(buff));
+    memset(request_buff, 0, sizeof(request_buff));
 }

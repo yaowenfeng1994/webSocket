@@ -8,10 +8,12 @@
 #include <map>
 #include <sstream>
 #include <unistd.h>
+
 #include "sha1.h"
 #include "base64.h"
 #include "web_socket_request.h"
-#include "web_socket_respond.h"
+//#include "web_socket_respond.h"
+#include "../utils/json/json.h"
 
 #define MAGIC_KEY "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
@@ -56,30 +58,54 @@ public:
     webSocketHandler(int fd);
     ~webSocketHandler();
     ssize_t process();
-    char* get_buff();
 
-    bool get_first();
-    void set_first(bool result);
-    void reset();
+    inline char* get_buff();
+    inline char* get_request_buff();
+    inline char* get_user_id();
+    inline bool get_first();
     inline uint8_t get_msg_op_code();
     inline WEB_SOCKET_STATUS get_state();
+    inline size_t get_request_msg_len();
+
+    void reset();
+    void set_first(bool result);
+    ssize_t send_data(int target_fd, char *buff);
 
 private:
     ssize_t hand_shark();
     void parse_str(char *request);
     int fetch_http_info();
-    ssize_t send_data(char *buff);
+//    ssize_t send_data(int target_fd, char *buff);
 
 private:
-    char buff[2048];
+    char buff[2048];                //用来接收
+    char request_buff[2048];        //用来发送
+    size_t request_msg_len;
+    char user_id[512];
     WEB_SOCKET_STATUS status;
     HEADER_MAP header_map;
     int fd;
     webSocketRequest *request;      //请求处理类
-    webSocketRespond *respond;      //应答处理类
-    bool first;                     //表示构造函数是否是第一次初始化
+//    webSocketRespond *respond;      //应答处理类
+    bool first;                     //表示构造函数是否是第一次发送消息，将user_id与fd绑定
     uint8_t op_code;
 };
+
+inline char* webSocketHandler::get_buff(){
+    return buff;
+}
+
+inline char* webSocketHandler::get_request_buff(){
+    return request_buff;
+}
+
+inline char* webSocketHandler::get_user_id(){
+    return user_id;
+}
+
+inline bool webSocketHandler::get_first(){
+    return first;
+}
 
 inline uint8_t webSocketHandler::get_msg_op_code(){
     return op_code;
@@ -87,6 +113,10 @@ inline uint8_t webSocketHandler::get_msg_op_code(){
 
 inline WEB_SOCKET_STATUS webSocketHandler::get_state(){
     return status;
+}
+
+inline size_t webSocketHandler::get_request_msg_len(){
+    return request_msg_len;
 }
 
 #endif //_WEB_SOCKET_HANDLER_H

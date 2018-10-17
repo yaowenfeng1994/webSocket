@@ -11,6 +11,7 @@
 #include <sys/epoll.h>
 #include <list>
 #include "web_socket_handler.h"
+#include "web_socket_respond.h"
 
 #define PORT 13389
 #define TIME_WAIT 120
@@ -25,8 +26,8 @@ typedef map<int, webSocketHandler *> WEB_SOCKET_HANDLER_MAP;
 
 struct clientSocketFd {
     int     socket_fd;
-    char*   user_id;
-    char*   user_name;
+    char   user_id[512];
+    char   user_name[512];
     char    send_buff[2048];
 };
 
@@ -50,6 +51,7 @@ private:
     int epoll_loop();
     int set_noblock(int fd);
     void ctl_event(int fd, bool flag);
+    webSocketRespond *respond;      //应答处理类
 //    void respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment);
 
 public:

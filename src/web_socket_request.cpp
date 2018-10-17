@@ -13,10 +13,6 @@ webSocketRequest::webSocketRequest():
 {
 }
 
-webSocketRequest::~webSocketRequest(){
-
-}
-
 int webSocketRequest::fetch_web_socket_info(char *msg){
     int pos = 0;
     fetch_fin(msg, pos);

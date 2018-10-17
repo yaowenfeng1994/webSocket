@@ -103,7 +103,7 @@ int socketInterface::epoll_loop(){
     while(true){
         if (!connection_fds.empty())
         {
-            cout << "当前连接池里有:(";
+            cout << "当前连接池里的用户有:(";
             for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
                 cout << it->user_id << ",";
             }
@@ -125,17 +125,6 @@ int socketInterface::epoll_loop(){
                 if(handler == NULL)
                     continue;
                 if((read(fd, handler->get_buff(), BUFF_LEN)) <= 0){
-                    printf("222strlen(handler->get_buff()): %s\n", strlen(handler->get_buff()));
-                    ctl_event(fd, false);
-                    for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
-                        if (it->socket_fd == fd) {
-                            it = connection_fds.erase(it);
-                            break;
-                        }
-                    }
-                } else if (handler->get_msg_op_code()==8) {
-                    // 如果收到消息长度为0，就删除epoll事件
-                    printf("222handler->get_msg_op_code(): %d\n", handler->get_msg_op_code());
                     ctl_event(fd, false);
                     for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
                         if (it->socket_fd == fd) {
@@ -145,16 +134,40 @@ int socketInterface::epoll_loop(){
                     }
                 } else {
                     handler->process();
-                    if (handler->get_first() && handler->get_state() == 1 && strlen(handler->get_buff())>0){
-                        printf("111strlen(handler->get_buff()): %s\n", strlen(handler->get_buff()));
+                    if (handler->get_first() && handler->get_state() == 1 && strlen(handler->get_user_id())>0){
                         clientSocketFd fdObj;
                         fdObj.socket_fd = fd;
-                        memcpy(fdObj.user_id, handler->get_buff(), strlen(handler->get_buff()));
-                        printf("fdObj.user_id: %d\n", fdObj.user_id);
+                        memcpy(fdObj.user_id, handler->get_user_id(), strlen(handler->get_user_id()));
+                        printf("fdObj.socket_fd: %d\n", fdObj.socket_fd);
+                        printf("fdObj.user_id: %s\n", fdObj.user_id);
                         connection_fds.push_front(fdObj);
-//                        handler->set_first(false);
+                        handler->set_first(false);
+                    } else if (handler->get_msg_op_code()==8) {
+                        ctl_event(fd, false);
+                        for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
+                            if (it->socket_fd == fd) {
+                                it = connection_fds.erase(it);
+                                break;
+                            }
+                        }
+                    } else {
+                        unsigned char* out;
+                        size_t         out_len;
+                        char* request_msg = handler->get_request_buff();
+                        size_t request_msg_len = handler->get_request_msg_len();
+                        uint8_t msg_op_code = handler->get_msg_op_code();
+                        if (msg_op_code == 1) {
+                            //组包
+                            respond->pack_data((const unsigned char*)request_msg,request_msg_len , WEB_SOCKET_FIN_MSG_END ,
+                                   WEB_SOCKET_TEXT_DATA , WEB_SOCKET_NEED_NOT_MASK , &out, &out_len);
+                            handler->send_data(fd, (char*)out);          //回显
+                            free(out);
+                        } else if (msg_op_code == 0) {
+                            //
+                            cout << "连接断开?" << endl;
+                        }
                     }
-//                    handler->reset();
+                    handler->reset();
                 }
             }
         }
