@@ -69,7 +69,7 @@ int webSocketRequest::fetch_masking_key(char *msg, int &pos){
 }
 
 int webSocketRequest::fetch_payload_length(char *msg, int &pos){
-    payload_length = ( unsigned long long)(msg[pos] & 0x7f);
+    payload_length = (unsigned long long)(msg[pos] & 0x7f);
     pos++;
     if(payload_length == 126){
         uint16_t length = 0;

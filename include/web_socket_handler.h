@@ -65,7 +65,6 @@ public:
     inline bool get_first();
     inline uint8_t get_msg_op_code();
     inline WEB_SOCKET_STATUS get_state();
-    inline size_t get_request_msg_len();
 
     void reset();
     void set_first(bool result);
@@ -75,18 +74,15 @@ private:
     ssize_t hand_shark();
     void parse_str(char *request);
     int fetch_http_info();
-//    ssize_t send_data(int target_fd, char *buff);
 
 private:
     char buff[2048];                //用来接收
     char request_buff[2048];        //用来发送
-    size_t request_msg_len;
     char user_id[512];
     WEB_SOCKET_STATUS status;
     HEADER_MAP header_map;
     int fd;
     webSocketRequest *request;      //请求处理类
-//    webSocketRespond *respond;      //应答处理类
     bool first;                     //表示构造函数是否是第一次发送消息，将user_id与fd绑定
     uint8_t op_code;
 };
@@ -113,10 +109,6 @@ inline uint8_t webSocketHandler::get_msg_op_code(){
 
 inline WEB_SOCKET_STATUS webSocketHandler::get_state(){
     return status;
-}
-
-inline size_t webSocketHandler::get_request_msg_len(){
-    return request_msg_len;
 }
 
 #endif //_WEB_SOCKET_HANDLER_H

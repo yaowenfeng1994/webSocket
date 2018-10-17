@@ -51,49 +51,6 @@ int socketInterface::init(){
     return 0;
 }
 
-// 该方法已废弃
-//void socketInterface::respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment){
-//    char buf[1024] = "";
-//    char char_buf[1024] = "";
-//    int first = 0x00;
-//    int tmp = 0;
-//    if (finalFragment) {
-//        first = first + 0x80;
-//        first = first + 0x1;
-//    }
-//    buf[0] = first;
-//    tmp = 1;
-//    cout <<"数组长度:"<< length << endl;
-//    int nuNum = (unsigned)length;
-//    if (length < 126) {
-//        // buf[1] = length;
-//        buf[1] = '0'; // server下发数据给client时一般不进行掩码处理
-//        tmp = 2;
-//    }else if (length < 65536) {
-//        buf[1] = 126;
-//        buf[2] = nuNum >> 8;
-//        buf[3] = length & 0xFF;
-//        tmp = 4;
-//    }else {
-//        //数据长度超过65536
-//        buf[1] = 127;
-//        buf[2] = 0;
-//        buf[3] = 0;
-//        buf[4] = 0;
-//        buf[5] = 0;
-//        buf[6] = nuNum >> 24;
-//        buf[7] = nuNum >> 16;
-//        buf[8] = nuNum >> 8;
-//        buf[9] = nuNum & 0xFF;
-//        tmp = 10;
-//    }
-//    for (int i = 0; i < length;i++){
-//        buf[tmp+i]= receive_buff[i];
-//    }
-//    memcpy(char_buf, buf, strlen(buf));
-//    send(sockClient, char_buf, 1024, 0);
-//}
-
 int socketInterface::epoll_loop(){
     struct sockaddr_in client_address;
     socklen_t client;
@@ -138,8 +95,6 @@ int socketInterface::epoll_loop(){
                         clientSocketFd fdObj;
                         fdObj.socket_fd = fd;
                         memcpy(fdObj.user_id, handler->get_user_id(), strlen(handler->get_user_id()));
-                        printf("fdObj.socket_fd: %d\n", fdObj.socket_fd);
-                        printf("fdObj.user_id: %s\n", fdObj.user_id);
                         connection_fds.push_front(fdObj);
                         handler->set_first(false);
                     } else if (handler->get_msg_op_code()==8) {
@@ -150,21 +105,43 @@ int socketInterface::epoll_loop(){
                                 break;
                             }
                         }
-                    } else {
+                    } else if (strlen(handler->get_user_id())>0){
                         unsigned char* out;
                         size_t         out_len;
                         char* request_msg = handler->get_request_buff();
-                        size_t request_msg_len = handler->get_request_msg_len();
+                        uint64_t request_msg_len;
                         uint8_t msg_op_code = handler->get_msg_op_code();
-                        if (msg_op_code == 1) {
+
+                        string json_msg=request_msg;
+                        Json::Reader  reader;
+                        Json::Value   value;
+                        int target_fd = 0;
+                        string send_msg;
+
+                        if(reader.parse(json_msg,value)) {
+                            if(!value["user_id"].isNull()) {
+                                string target_user_id = value["user_id"].asString();
+                                for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
+                                    if (it->user_id == target_user_id) {
+                                        target_fd = it->socket_fd;
+                                        break;
+                                    }
+                                }
+                                send_msg = value["msg"].asString();
+                            }
+                        }
+
+                        if (msg_op_code == 1 && target_fd > 0) {
                             //组包
-                            respond->pack_data((const unsigned char*)request_msg,request_msg_len , WEB_SOCKET_FIN_MSG_END ,
+                            request_msg_len = strlen(send_msg.data());
+                            respond->pack_data((const unsigned char*)send_msg.data(),request_msg_len , WEB_SOCKET_FIN_MSG_END ,
                                    WEB_SOCKET_TEXT_DATA , WEB_SOCKET_NEED_NOT_MASK , &out, &out_len);
-                            handler->send_data(fd, (char*)out);          //回显
+                            handler->send_data(target_fd, (char*)out);
                             free(out);
                         } else if (msg_op_code == 0) {
-                            //
                             cout << "连接断开?" << endl;
+                        } else if (target_fd == 0) {
+                            cout << "没有找到对方id" << endl;
                         }
                     }
                     handler->reset();

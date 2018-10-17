@@ -11,7 +11,6 @@ webSocketHandler::webSocketHandler(int fd):
         fd(fd),
         request(new webSocketRequest),
         first(true),
-        request_msg_len(),
         request_buff(),
         op_code()
 {
@@ -35,7 +34,6 @@ ssize_t webSocketHandler::process(){
 
     if (!first) {
         memcpy(request_buff, request->get_msg(), strlen(request->get_msg()));
-        request_msg_len = request->get_msg_length();
         op_code = request->get_msg_op_code();
 //        if (msg_op_code == 1) {
 //            //组包
@@ -125,7 +123,6 @@ void webSocketHandler::set_first(bool result){
 }
 
 void webSocketHandler::reset(){
-    request_msg_len = 0;
     op_code = 0;
     memset(buff, 0, sizeof(buff));
     memset(request_buff, 0, sizeof(request_buff));

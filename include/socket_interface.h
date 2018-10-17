@@ -52,7 +52,6 @@ private:
     int set_noblock(int fd);
     void ctl_event(int fd, bool flag);
     webSocketRespond *respond;      //应答处理类
-//    void respondClient(int sockClient, unsigned char receive_buff[],size_t length, bool finalFragment);
 
 public:
     void run();
