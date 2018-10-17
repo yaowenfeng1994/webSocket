@@ -105,12 +105,12 @@ int socketInterface::epoll_loop(){
                                 break;
                             }
                         }
-                    } else if (strlen(handler->get_user_id())>0){
-                        unsigned char* out;
-                        size_t         out_len;
-                        char* request_msg = handler->get_request_buff();
-                        uint64_t request_msg_len;
-                        uint8_t msg_op_code = handler->get_msg_op_code();
+                    } else if (strlen(handler->get_request_buff())>0){
+                        unsigned char*  out;
+                        size_t          out_len;
+                        char*           request_msg = handler->get_request_buff();
+                        uint64_t        request_msg_len;
+                        uint8_t         msg_op_code = handler->get_msg_op_code();
 
                         string json_msg=request_msg;
                         Json::Reader  reader;
@@ -119,9 +119,9 @@ int socketInterface::epoll_loop(){
                         string send_msg;
 
                         if(reader.parse(json_msg,value)) {
-                            if(!value["user_id"].isNull()) {
-                                string target_user_id = value["user_id"].asString();
-                                for(list<clientSocketFd>::iterator it=connection_fds.begin() ; it!=connection_fds.end() ; it++){
+                            if(!value["send_to"].isNull()) {
+                                string target_user_id = value["send_to"].asString();
+                                for(list<clientSocketFd>::iterator it=connection_fds.begin(); it!=connection_fds.end(); it++){
                                     if (it->user_id == target_user_id) {
                                         target_fd = it->socket_fd;
                                         break;
@@ -134,8 +134,8 @@ int socketInterface::epoll_loop(){
                         if (msg_op_code == 1 && target_fd > 0) {
                             //组包
                             request_msg_len = strlen(send_msg.data());
-                            respond->pack_data((const unsigned char*)send_msg.data(),request_msg_len , WEB_SOCKET_FIN_MSG_END ,
-                                   WEB_SOCKET_TEXT_DATA , WEB_SOCKET_NEED_NOT_MASK , &out, &out_len);
+                            respond->pack_data((const unsigned char*)send_msg.data(), request_msg_len, WEB_SOCKET_FIN_MSG_END,
+                                    WEB_SOCKET_TEXT_DATA, WEB_SOCKET_NEED_NOT_MASK, &out, &out_len);
                             handler->send_data(target_fd, (char*)out);
                             free(out);
                         } else if (msg_op_code == 0) {

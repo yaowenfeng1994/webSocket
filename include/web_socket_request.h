@@ -18,7 +18,6 @@ public:
     void reset();
 
     inline char* get_msg();
-    uint64_t get_msg_length();
     uint8_t get_msg_op_code();
 
 private:

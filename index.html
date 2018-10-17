@@ -35,7 +35,7 @@
         function Send(){
             let send_to = document.getElementById("send_to").value;
             let msg = document.getElementById("msg").value;
-            let result = '{"user_id":"'+send_to+'","msg":"'+msg+'"}';
+            let result = '{"send_to":"'+send_to+'","msg":"'+msg+'"}';
             alert("发送数据:" + result);
             socket.send(result);
         }
@@ -51,7 +51,7 @@
 </head>
 
 <body>
-输入自己的ID<br>
+输入自己的ID后点击connect<br>
 <input id="user_id" type="text"><br>
 <button id="connect" onclick="Connect();">Connect</button><br>
 输入你要说的话<br>

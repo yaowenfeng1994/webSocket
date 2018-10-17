@@ -125,5 +125,6 @@ void webSocketHandler::set_first(bool result){
 void webSocketHandler::reset(){
     op_code = 0;
     memset(buff, 0, sizeof(buff));
+    memset(user_id, 0, sizeof(user_id));
     memset(request_buff, 0, sizeof(request_buff));
 }
